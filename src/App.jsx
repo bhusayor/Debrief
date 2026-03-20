@@ -1011,9 +1011,9 @@ function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
   }
 
   if (phase === "input") return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: isMobile ? "20px 16px" : "40px 32px" }}>
-      <div className="fade" style={{ width:"100%", maxWidth:640 }}>
-        <div style={{ marginBottom:32 }}>
+    <div style={{ flex:1, display:"flex", flexDirection:"column", padding: isMobile ? "20px 16px" : "40px 32px", overflowY:"auto" }}>
+      <div className="fade" style={{ width:"100%", maxWidth:640, margin:"0 auto" }}>
+        <div style={{ marginBottom:32, textAlign:"center" }}>
           <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:T.accentBg, border:`1px solid ${T.accent}33`, borderRadius:100, padding:"4px 14px", fontSize:11, fontFamily:"DM Mono", color:T.accent, marginBottom:16, letterSpacing:"0.05em" }}>
             ✦ BRIEF TRANSLATOR
           </div>
@@ -1028,40 +1028,47 @@ function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
         <input value={projectName} onChange={e=>setProjectName(e.target.value)} placeholder="Project name (optional)"
           style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:"11px 16px", color:T.text, fontSize:13, marginBottom:14 }} />
 
-        {/* Unified Input Area with Drag & Drop */}
+        {/* Chat-like Input Box */}
         <div
-          onDragOver={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.accent+"88"; e.currentTarget.style.backgroundColor=T.accentBg; }}
-          onDragLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.backgroundColor=T.surface; }}
-          onDrop={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.border; e.currentTarget.style.backgroundColor=T.surface; handleFile(e.dataTransfer.files[0]); }}
-          onClick={()=>fileRef.current.click()}
           style={{
-            border:`1.5px dashed ${T.border}`,
+            border:`1px solid ${T.border}`,
             borderRadius:10,
             background:T.surface,
-            padding:14,
-            cursor:"pointer",
+            padding:"14px",
             marginBottom:14,
             transition:"all .2s",
+            display:"flex",
+            flexDirection:"column",
+            gap:12,
           }}
+          onDragOver={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.accent+"88"; e.currentTarget.style.backgroundColor=T.card; }}
+          onDragLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.backgroundColor=T.surface; }}
+          onDrop={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.border; e.currentTarget.style.backgroundColor=T.surface; handleFile(e.dataTransfer.files[0]); }}
         >
           <textarea
             value={briefText}
             onChange={e=>setBriefText(e.target.value)}
-            placeholder="Paste your brief here... or drag/drop a document"
+            onKeyDown={e=>{
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (briefText.trim()) handleTranslate();
+              }
+            }}
+            placeholder="Paste your brief here... or upload a file or image"
             style={{
               width:"100%",
-              minHeight:140,
+              minHeight:120,
               background:"transparent",
               border:"none",
               borderRadius:0,
-              padding:"8px 0",
+              padding:0,
               color:T.text,
               fontFamily:"DM Mono",
               fontSize:12,
               lineHeight:1.8,
               resize:"none",
               outline:"none",
-              fontColor:T.text,
+              margin:0,
             }}
             onFocus={e=>{ e.currentTarget.parentElement.style.borderColor=T.accent+"66"; e.currentTarget.parentElement.style.backgroundColor=T.accentBg+"0D"; }}
             onBlur={e=>{ e.currentTarget.parentElement.style.borderColor=T.border; e.currentTarget.parentElement.style.backgroundColor=T.surface; }}
@@ -1069,9 +1076,9 @@ function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
 
           {/* File Info */}
           {fileName && (
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:10, padding:"8px 0", borderTop:`1px solid ${T.border}` }}>
-              <span style={{ fontSize:14 }}>📄</span>
-              <span style={{ fontSize:11, color:T.accent, flexGrow:1 }}>{fileName}</span>
+            <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 10px", background:T.card, borderRadius:6, marginTop:4 }}>
+              <span style={{ fontSize:12 }}>📄</span>
+              <span style={{ fontSize:11, color:T.accent, flexGrow:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fileName}</span>
               <button
                 onClick={e=>{e.stopPropagation(); setFileName(null); setBriefText("");}}
                 style={{
@@ -1079,25 +1086,110 @@ function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
                   border:"none",
                   color:T.textMuted,
                   cursor:"pointer",
-                  fontSize:16,
+                  fontSize:14,
                   padding:"4px 8px",
                   borderRadius:4,
                   transition:"all .2s",
+                  flexShrink:0,
                 }}
-                onMouseEnter={e=>{ e.target.color=T.red; e.target.style.background=T.cardHover; }}
-                onMouseLeave={e=>{ e.target.color=T.textMuted; e.target.style.background="none"; }}
+                onMouseEnter={e=>{ e.target.style.color=T.red; e.target.style.background=T.border; }}
+                onMouseLeave={e=>{ e.target.style.color=T.textMuted; e.target.style.background="none"; }}
+                title="Remove file"
               >
                 ×
               </button>
             </div>
           )}
+
+          {/* Upload Buttons */}
+          <div style={{ display:"flex", gap:8, borderTop:`1px solid ${T.border}`, paddingTop:10 }}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.pdf,.doc,.docx,.md"
+              style={{display:"none"}}
+              onChange={e=>handleFile(e.target.files[0])}
+            />
+            <button
+              onClick={()=>fileRef.current.click()}
+              style={{
+                background:"none",
+                border:"none",
+                cursor:"pointer",
+                fontSize:20,
+                color:T.textSoft,
+                padding:"4px 8px",
+                borderRadius:6,
+                transition:"all .2s",
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+              }}
+              onMouseEnter={e=>{ e.target.style.color=T.accent; e.target.style.background=T.card; }}
+              onMouseLeave={e=>{ e.target.style.color=T.textSoft; e.target.style.background="none"; }}
+              title="Upload document (.txt, .pdf, .docx, .md)"
+            >
+              📎
+            </button>
+
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg,.gif,.webp"
+              style={{display:"none"}}
+              onChange={e=>handleFile(e.target.files[0])}
+              id="imageInput"
+            />
+            <button
+              onClick={()=>document.getElementById("imageInput").click()}
+              style={{
+                background:"none",
+                border:"none",
+                cursor:"pointer",
+                fontSize:20,
+                color:T.textSoft,
+                padding:"4px 8px",
+                borderRadius:6,
+                transition:"all .2s",
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+              }}
+              onMouseEnter={e=>{ e.target.style.color=T.accent; e.target.style.background=T.card; }}
+              onMouseLeave={e=>{ e.target.style.color=T.textSoft; e.target.style.background="none"; }}
+              title="Upload image (.png, .jpg, .jpeg, .gif, .webp)"
+            >
+              🖼
+            </button>
+
+            <div style={{ flex:1 }} /> {/* Spacer */}
+
+            <button
+              onClick={handleTranslate}
+              disabled={!briefText.trim()}
+              style={{
+                background: briefText.trim() ? T.accent : T.border,
+                border:"none",
+                cursor: briefText.trim() ? "pointer" : "not-allowed",
+                fontSize:16,
+                color: briefText.trim() ? T.bg : T.textMuted,
+                padding:"6px 12px",
+                borderRadius:6,
+                transition:"all .2s",
+                fontWeight:600,
+                opacity: briefText.trim() ? 1 : 0.5,
+              }}
+              onMouseEnter={e=>{ if(briefText.trim()) { e.target.style.background=T.accentDim; } }}
+              onMouseLeave={e=>{ if(briefText.trim()) { e.target.style.background=T.accent; } }}
+              title="Analyze brief"
+            >
+              ⮕
+            </button>
+          </div>
         </div>
 
-        <input ref={fileRef} type="file" accept=".txt,.pdf,.doc,.docx,.md,.png,.jpg,.jpeg" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])} />
-
-        <Btn primary onClick={handleTranslate} disabled={!briefText.trim()} full>
-          Analyze Brief →
-        </Btn>
+        <div style={{ fontSize:11, color:T.textMuted, textAlign:"center" }}>
+          Shift + Enter to new line, or just click the arrow to analyze
+        </div>
       </div>
     </div>
   );
