@@ -55,9 +55,28 @@ textarea,input,button{outline:none;font-family:'Syne',sans-serif}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes slideRight{from{transform:translateX(-12px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideInLeft{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes barGrow{from{width:0}to{width:var(--bar-w)}}
 .fade{animation:fadeUp .35s ease both}
 .slide-r{animation:slideRight .3s ease both}
+.sidebar-backdrop{animation:fadeUp .2s ease}
+.sidebar-open{animation:slideInLeft .3s ease}
+
+/* Responsive Styles */
+@media(max-width:1024px){
+  .responsive-padding{padding:32px 24px !important}
+}
+@media(max-width:768px){
+  .hamburger-menu{display:flex !important}
+  .sidebar-desktop{display:none !important}
+  .main-responsive{padding:0 !important}
+}
+@media(max-width:480px){
+  .responsive-padding{padding:20px 16px !important}
+  .translator-grid{grid-template-columns:1fr !important}
+  .kanban-horizontal{flex-direction:column !important}
+}
 `;
 
 /* ═══════════════════════════════════════════════
@@ -210,6 +229,51 @@ export default function App() {
   const [history, setHistory] = useState([]); // [{id,title,section,data,ts}]
   const [activeChat, setActiveChat] = useState(null);
   const [toast, setToast] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle responsive sidebar
+  React.useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setSidebarOpen(true); // Always show on desktop
+      } else {
+        setSidebarOpen(false); // Start closed on mobile
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Close sidebar when clicking outside on mobile
+  const mainRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!isMobile) return;
+    const handleClick = (e) => {
+      if (mainRef.current && mainRef.current.contains(e.target)) {
+        // Check if click is on the main content area (not the sidebar)
+        const sidebar = document.querySelector('aside');
+        if (sidebar && !sidebar.contains(e.target)) {
+          setSidebarOpen(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isMobile]);
+
+  // Handle Escape key to close sidebar
+  React.useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isMobile && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isMobile, sidebarOpen]);
 
   function showToast(msg, type = "ok") {
     setToast({ msg, type });
@@ -252,12 +316,30 @@ export default function App() {
   return (
     <>
       <style>{CSS}</style>
-      <div style={{ display:"flex", height:"100vh", overflow:"hidden" }}>
+      <div style={{ display:"flex", height:"100vh", overflow:"hidden", flexDirection: isMobile && sidebarOpen ? "column" : "row", position: "relative" }}>
+
+        {/* Sidebar backdrop for mobile */}
+        {isMobile && sidebarOpen && (
+          <div
+            className="sidebar-backdrop"
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 999,
+              cursor: "pointer",
+            }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
         {/* ── SIDEBAR ── */}
         <Sidebar
           activeSection={activeSection}
-          setActiveSection={s => { setActiveSection(s); setActiveChat(null); }}
+          setActiveSection={s => { setActiveSection(s); setActiveChat(null); if (isMobile) setSidebarOpen(false); }}
           translatorHistory={translatorHistory}
           teamHistory={teamHistory}
           activeChat={activeChat}
@@ -267,16 +349,71 @@ export default function App() {
           onPin={pinHistory}
           onRename={renameHistory}
           onShare={shareHistory}
+          isOpen={sidebarOpen}
+          isMobile={isMobile}
         />
 
         {/* ── MAIN ── */}
-        <main style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+        <main
+          ref={mainRef}
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+          }}
+        >
+          {/* Hamburger menu for mobile */}
+          {isMobile && (
+            <div
+              style={{
+                display: sidebarOpen ? "none" : "flex",
+                alignItems: "center",
+                padding: "16px",
+                borderBottom: `1px solid ${T.border}`,
+                background: T.surface,
+                zIndex: 100,
+              }}
+            >
+              <button
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: T.accent,
+                  fontSize: "24px",
+                  padding: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 44,
+                  height: 44,
+                  borderRadius: 8,
+                  transition: "all .2s",
+                  background: T.surface,
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = T.card}
+                onMouseLeave={e => e.currentTarget.style.background = T.surface}
+                title="Toggle sidebar"
+              >
+                ☰
+              </button>
+              <div style={{ flex: 1, textAlign: "center", fontWeight: 700, fontSize: 14, color: T.text }}>
+                {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
+              </div>
+              <div style={{ width: 44 }} />
+            </div>
+          )}
+
           {activeSection === "translator" && (
             <TranslatorView
               key={activeChat || "new-translator"}
               existing={activeSection === "translator" ? activeItem : null}
               saveHistory={saveHistory}
               showToast={showToast}
+              isMobile={isMobile}
             />
           )}
           {activeSection === "team" && (
@@ -285,6 +422,7 @@ export default function App() {
               existing={activeSection === "team" ? activeItem : null}
               saveHistory={saveHistory}
               showToast={showToast}
+              isMobile={isMobile}
             />
           )}
           {activeSection === "library" && (
@@ -292,6 +430,7 @@ export default function App() {
               history={history}
               setActiveSection={setActiveSection}
               setActiveChat={setActiveChat}
+              isMobile={isMobile}
             />
           )}
         </main>
@@ -305,7 +444,7 @@ export default function App() {
 /* ═══════════════════════════════════════════════
    SIDEBAR
 ═══════════════════════════════════════════════ */
-function Sidebar({ activeSection, setActiveSection, translatorHistory, teamHistory, activeChat, setActiveChat, onNewChat, onDelete, onPin, onRename, onShare }) {
+function Sidebar({ activeSection, setActiveSection, translatorHistory, teamHistory, activeChat, setActiveChat, onNewChat, onDelete, onPin, onRename, onShare, isOpen, isMobile }) {
   const sections = [
     { id:"translator", label:"Brief Translator", icon:"◈" },
     { id:"team",       label:"Team Collab",      icon:"◉" },
@@ -318,8 +457,21 @@ function Sidebar({ activeSection, setActiveSection, translatorHistory, teamHisto
 
   return (
     <aside style={{
-      width:260, background:T.sidebar, borderRight:`1px solid ${T.border}`,
-      display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden",
+      width: isMobile ? Math.min(260, window.innerWidth * 0.8) : 260,
+      background:T.sidebar,
+      borderRight:`1px solid ${T.border}`,
+      display: isMobile && !isOpen ? "none" : "flex",
+      flexDirection:"column",
+      flexShrink: isMobile ? 1 : 0,
+      overflow:"hidden",
+      ...(isMobile ? {
+        position: "fixed",
+        left: 0,
+        top: 0,
+        height: "100vh",
+        zIndex: 1000,
+        animation: isOpen ? "slideInLeft .3s ease" : "none",
+      } : {}),
     }}>
       {/* Logo */}
       <div style={{ padding:"20px 18px 16px", borderBottom:`1px solid ${T.border}` }}>
@@ -536,7 +688,7 @@ function HistoryItem({ item, active, onClick, onDelete, onPin, onRename, onShare
 /* ═══════════════════════════════════════════════
    TRANSLATOR VIEW
 ═══════════════════════════════════════════════ */
-function TranslatorView({ existing, saveHistory, showToast }) {
+function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
   const [phase, setPhase] = useState(existing ? "result" : "input"); // input | loading | result
   const [briefText, setBriefText] = useState(existing?.data?.brief || "");
   const [projectName, setProjectName] = useState(existing?.data?.projectName || "");
@@ -827,7 +979,7 @@ function TranslatorView({ existing, saveHistory, showToast }) {
   }
 
   if (phase === "input") return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 32px" }}>
+    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: isMobile ? "20px 16px" : "40px 32px" }}>
       <div className="fade" style={{ width:"100%", maxWidth:640 }}>
         <div style={{ marginBottom:32 }}>
           <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:T.accentBg, border:`1px solid ${T.accent}33`, borderRadius:100, padding:"4px 14px", fontSize:11, fontFamily:"DM Mono", color:T.accent, marginBottom:16, letterSpacing:"0.05em" }}>
@@ -895,8 +1047,8 @@ function TranslatorView({ existing, saveHistory, showToast }) {
   const verdictColor = { GOOD:T.green, FAIR:T.amber, POOR:T.red, CHAOS:T.purple }[s?.verdict] || T.textMuted;
 
   return (
-    <div style={{ flex:1, overflowY:"auto", padding:"32px 40px" }}>
-      <div style={{ maxWidth:820, margin:"0 auto" }}>
+    <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "20px 16px" : "32px 40px" }}>
+      <div style={{ maxWidth: isMobile ? "100%" : 820, margin:"0 auto" }}>
 
         {/* Header */}
         <div className="fade" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
@@ -957,7 +1109,7 @@ function TranslatorView({ existing, saveHistory, showToast }) {
         )}
 
         {/* 2-col grid */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:14, marginBottom:14 }}>
 
           {/* Tone */}
           <Card title="Tone & Mood">
@@ -1050,7 +1202,7 @@ function TranslatorView({ existing, saveHistory, showToast }) {
         )}
 
         {/* Budget + Timeframe */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:24 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:14, marginBottom:24 }}>
                   <Card title="Budget Estimate">
             <div style={{ fontSize:28, fontWeight:800, marginBottom:4 }}>
               ${r.budgetRange?.min?.toLocaleString()}
@@ -1373,7 +1525,7 @@ function getRoleDesc(role) {
 /* ═══════════════════════════════════════════════
    TEAM VIEW
 ═══════════════════════════════════════════════ */
-function TeamView({ existing, saveHistory, showToast }) {
+function TeamView({ existing, saveHistory, showToast, isMobile }) {
   const [messages, setMessages] = useState(existing?.data?.messages || [
     { role:"ai", text:"Welcome to Team Collab. Paste a project brief, describe your project, or upload a document — and I'll help you build your team and generate a task board.", id:uid() }
   ]);
@@ -1717,7 +1869,7 @@ Return this exact JSON structure:
   }
 
   return (
-    <div style={{ display:"flex", height:"100%", overflow:"hidden", position:"relative" }}>
+    <div style={{ display:"flex", height:"100%", overflow:"hidden", position:"relative", flexDirection: isMobile ? "column" : "row" }}>
       {/* Task edit modal */}
       {editingTask && (
         <TaskModal
@@ -1740,7 +1892,7 @@ Return this exact JSON structure:
       )}
 
       {/* Chat column */}
-      <div style={{ width: kanban ? 300 : "100%", flexShrink:0, display:"flex", flexDirection:"column", borderRight: kanban?`1px solid ${T.border}`:"none", transition:"width .3s ease" }}>
+      <div style={{ width: isMobile ? "100%" : (kanban ? 300 : "100%"), height: isMobile ? (kanban ? "40%" : "100%") : "auto", flexShrink:0, display:"flex", flexDirection:"column", borderRight: kanban && !isMobile ? `1px solid ${T.border}` : "none", borderBottom: kanban && isMobile ? `1px solid ${T.border}` : "none", transition:"width .3s ease" }}>
 
         {/* Messages */}
         <div style={{ flex:1, overflowY:"auto", padding:"24px 20px 0" }}>
@@ -1856,7 +2008,7 @@ Return this exact JSON structure:
                   <React.Fragment key={col}>
                     {colIdx > 0 && <div style={{ width:1, background:`linear-gradient(to bottom, transparent, ${T.border}, transparent)`, flexShrink:0, alignSelf:"stretch", margin:"0 4px" }} />}
                     <div
-                      style={{ width:280, flexShrink:0, padding:"0 12px", borderRadius:12, transition:"background .15s",
+                      style={{ width: isMobile ? 200 : 280, flexShrink:0, padding:"0 12px", borderRadius:12, transition:"background .15s",
                         background: isDropTarget ? accentCol+"0D" : "transparent",
                         outline: isDropTarget ? `2px dashed ${accentCol}66` : "2px dashed transparent",
                         outlineOffset: -2,
@@ -2231,13 +2383,13 @@ function TaskModal({ task, kanbanCols, teamMembers, onUpdate, onMove, onClose })
 /* ═══════════════════════════════════════════════
    LIBRARY VIEW
 ═══════════════════════════════════════════════ */
-function LibraryView({ history, setActiveSection, setActiveChat }) {
+function LibraryView({ history, setActiveSection, setActiveChat, isMobile }) {
   const translatorItems = history.filter(h=>h.section==="translator");
   const teamItems       = history.filter(h=>h.section==="team");
 
   return (
-    <div style={{ flex:1, overflowY:"auto", padding:"40px 40px" }}>
-      <div style={{ maxWidth:820, margin:"0 auto" }}>
+    <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "20px 16px" : "40px 40px" }}>
+      <div style={{ maxWidth: isMobile ? "100%" : 820, margin:"0 auto" }}>
         <div className="fade" style={{ marginBottom:32 }}>
           <div style={{ fontSize:11, color:T.accent, fontFamily:"DM Mono", letterSpacing:"0.08em", marginBottom:8 }}>PROJECT LIBRARY</div>
           <h2 style={{ fontSize:28, fontWeight:800, letterSpacing:"-0.02em" }}>All saved work</h2>
@@ -2253,7 +2405,7 @@ function LibraryView({ history, setActiveSection, setActiveChat }) {
         {translatorItems.length > 0 && (
           <div style={{ marginBottom:32 }}>
             <div style={{ fontWeight:700, fontSize:13, marginBottom:14, color:T.textSoft }}>Brief Translations</div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(260px,1fr))", gap:12 }}>
               {translatorItems.map(p=>(
                 <LibCard key={p.id} item={p} onClick={()=>{ setActiveSection("translator"); setActiveChat(p.id); }} />
               ))}
@@ -2264,7 +2416,7 @@ function LibraryView({ history, setActiveSection, setActiveChat }) {
         {teamItems.length > 0 && (
           <div>
             <div style={{ fontWeight:700, fontSize:13, marginBottom:14, color:T.textSoft }}>Team Projects</div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(260px,1fr))", gap:12 }}>
               {teamItems.map(p=>(
                 <LibCard key={p.id} item={p} onClick={()=>{ setActiveSection("team"); setActiveChat(p.id); }} />
               ))}
