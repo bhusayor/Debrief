@@ -45,7 +45,7 @@ const PRIORITY_COLOR = { HIGH: T.red, MEDIUM: T.amber, LOW: T.green };
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:${T.bg};color:${T.text};font-family:'Syne',sans-serif;-webkit-font-smoothing:antialiased}
+html,body{height:100svh;background:${T.bg};color:${T.text};font-family:'Syne',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:${T.border};border-radius:2px}
@@ -58,10 +58,13 @@ textarea,input,button{outline:none;font-family:'Syne',sans-serif}
 @keyframes slideInLeft{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes barGrow{from{width:0}to{width:var(--bar-w)}}
+@keyframes typewriter{from{width:0}to{width:100%}}
+@keyframes blink{0%,49%{border-right-color:${T.accent};}50%,100%{border-right-color:transparent}}
 .fade{animation:fadeUp .35s ease both}
 .slide-r{animation:slideRight .3s ease both}
 .sidebar-backdrop{animation:fadeUp .2s ease}
 .sidebar-open{animation:slideInLeft .3s ease}
+.typewriter-text{display:inline-block;border-right:2px solid ${T.accent};animation:blink .7s infinite;white-space:nowrap;overflow:hidden}
 
 /* Responsive Styles */
 @media(max-width:1024px){
@@ -686,6 +689,35 @@ function HistoryItem({ item, active, onClick, onDelete, onPin, onRename, onShare
 }
 
 /* ═══════════════════════════════════════════════
+   TYPEWRITER PLACEHOLDER
+═══════════════════════════════════════════════ */
+function TypewriterPlaceholder() {
+  const [displayText, setDisplayText] = useState("");
+  const fullText = "Paste brief, describe project, upload documents or files...";
+
+  useEffect(() => {
+    let idx = 0;
+    const interval = setInterval(() => {
+      if (idx < fullText.length) {
+        setDisplayText(fullText.slice(0, idx + 1));
+        idx++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ position:"relative", height:20, overflow:"hidden" }}>
+      <span className="typewriter-text" style={{ color:T.textMuted, fontSize:12 }}>
+        {displayText || fullText}
+      </span>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
    TRANSLATOR VIEW
 ═══════════════════════════════════════════════ */
 function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
@@ -986,47 +1018,85 @@ function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
             ✦ BRIEF TRANSLATOR
           </div>
           <h1 style={{ fontSize:36, fontWeight:800, letterSpacing:"-0.03em", lineHeight:1.1, marginBottom:10, color:"white",}}>
-            What did<br/><span style={{color:T.accent}}>your client say?</span>
+            What did<br/><span style={{color:T.accent}}>your brief say?</span>
           </h1>
           <p style={{ color:T.textSoft, fontSize:14, lineHeight:1.7 }}>
-            Paste any brief — email, voice note, or chat message. Or upload a document.
+            Share your brief. We'll analyze it, extract key insights, and help you scope your project.
           </p>
         </div>
 
         <input value={projectName} onChange={e=>setProjectName(e.target.value)} placeholder="Project name (optional)"
-          style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:"11px 16px", color:T.text, fontSize:13, marginBottom:10 }} />
+          style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:"11px 16px", color:T.text, fontSize:13, marginBottom:14 }} />
 
-        {/* File upload zone */}
+        {/* Unified Input Area with Drag & Drop */}
         <div
+          onDragOver={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.accent+"88"; e.currentTarget.style.backgroundColor=T.accentBg; }}
+          onDragLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.backgroundColor=T.surface; }}
+          onDrop={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.border; e.currentTarget.style.backgroundColor=T.surface; handleFile(e.dataTransfer.files[0]); }}
           onClick={()=>fileRef.current.click()}
-          onDragOver={e=>{ e.preventDefault(); e.currentTarget.style.borderColor=T.accent+"88"; }}
-          onDragLeave={e=>{ e.currentTarget.style.borderColor=T.border; }}
-          onDrop={e=>{ e.preventDefault(); handleFile(e.dataTransfer.files[0]); e.currentTarget.style.borderColor=T.border; }}
-          style={{ border:`1.5px dashed ${fileName?T.accent+"66":T.border}`, borderRadius:10, padding:"14px 16px",
-            background: fileName?T.accentBg:T.surface, cursor:"pointer", marginBottom:10,
-            display:"flex", alignItems:"center", gap:10, transition:"all .2s",
+          style={{
+            border:`1.5px dashed ${T.border}`,
+            borderRadius:10,
+            background:T.surface,
+            padding:14,
+            cursor:"pointer",
+            marginBottom:14,
+            transition:"all .2s",
           }}
         >
-          <span style={{ fontSize:18 }}>{fileName?"📄":"📎"}</span>
-          <span style={{ fontSize:12, color: fileName?T.accent:T.textSoft, fontFamily:"DM Mono" }}>
-            {fileName || "Upload .txt, .pdf, .docx — or drag & drop"}
-          </span>
-          {fileName && <span onClick={e=>{e.stopPropagation();setFileName(null);setBriefText("");}} style={{ marginLeft:"auto", color:T.textMuted, cursor:"pointer", fontSize:16 }}>×</span>}
-        </div>
-        <input ref={fileRef} type="file" accept=".txt,.pdf,.doc,.docx,.md" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])} />
+          <textarea
+            value={briefText}
+            onChange={e=>setBriefText(e.target.value)}
+            placeholder="Paste your brief here... or drag/drop a document"
+            style={{
+              width:"100%",
+              minHeight:140,
+              background:"transparent",
+              border:"none",
+              borderRadius:0,
+              padding:"8px 0",
+              color:T.text,
+              fontFamily:"DM Mono",
+              fontSize:12,
+              lineHeight:1.8,
+              resize:"none",
+              outline:"none",
+              fontColor:T.text,
+            }}
+            onFocus={e=>{ e.currentTarget.parentElement.style.borderColor=T.accent+"66"; e.currentTarget.parentElement.style.backgroundColor=T.accentBg+"0D"; }}
+            onBlur={e=>{ e.currentTarget.parentElement.style.borderColor=T.border; e.currentTarget.parentElement.style.backgroundColor=T.surface; }}
+          />
 
-        <textarea value={briefText} onChange={e=>setBriefText(e.target.value)}
-          placeholder={`"Make it clean but bold. Premium but approachable. Like Apple but warmer. Young but sophisticated. No brand guide yet. Budget is 'reasonable'. Deadline is ASAP."`}
-          style={{ width:"100%", minHeight:180, background:T.surface, border:`1px solid ${T.border}`, borderRadius:10,
-            padding:"14px 16px", color:T.text, fontFamily:"DM Mono", fontSize:12, lineHeight:1.8,
-            resize:"vertical", marginBottom:16, transition:"border-color .2s",
-          }}
-          onFocus={e=>e.target.style.borderColor=T.accent+"66"}
-          onBlur={e=>e.target.style.borderColor=T.border}
-        />
+          {/* File Info */}
+          {fileName && (
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:10, padding:"8px 0", borderTop:`1px solid ${T.border}` }}>
+              <span style={{ fontSize:14 }}>📄</span>
+              <span style={{ fontSize:11, color:T.accent, flexGrow:1 }}>{fileName}</span>
+              <button
+                onClick={e=>{e.stopPropagation(); setFileName(null); setBriefText("");}}
+                style={{
+                  background:"none",
+                  border:"none",
+                  color:T.textMuted,
+                  cursor:"pointer",
+                  fontSize:16,
+                  padding:"4px 8px",
+                  borderRadius:4,
+                  transition:"all .2s",
+                }}
+                onMouseEnter={e=>{ e.target.color=T.red; e.target.style.background=T.cardHover; }}
+                onMouseLeave={e=>{ e.target.color=T.textMuted; e.target.style.background="none"; }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+
+        <input ref={fileRef} type="file" accept=".txt,.pdf,.doc,.docx,.md,.png,.jpg,.jpeg" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])} />
 
         <Btn primary onClick={handleTranslate} disabled={!briefText.trim()} full>
-          Score & Translate Brief →
+          Analyze Brief →
         </Btn>
       </div>
     </div>
@@ -2508,7 +2578,7 @@ function ChatBubble({ msg }) {
         maxWidth:"82%", background:isAI?T.card:T.accentBg,
         border:`1px solid ${isAI?T.border:T.accent+"44"}`,
         borderRadius:isAI?"4px 12px 12px 12px":"12px 4px 12px 12px",
-        padding:"10px 14px", fontSize:12, lineHeight:1.75, color:T.text,
+        padding:"10px 14px", fontSize:12, lineHeight:1.75, color:T.text, textAlign:"left",
       }}>
         {lines.map((line, li) => {
           const parts = line.split(/\*\*(.*?)\*\*/g);
