@@ -1022,97 +1022,102 @@ function TranslatorView({ existing, saveHistory, showToast, isMobile }) {
   }
 
   if (phase === "input") return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", padding: isMobile ? "20px 16px" : "40px 32px", overflowY:"auto" }}>
-      <div className="fade" style={{ width:"100%", maxWidth:640, margin:"0 auto" }}>
+    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: isMobile ? "20px 16px" : "40px 32px", overflowY:"auto" }}>
+      <div className="fade" style={{ width:"100%", maxWidth:640 }}>
         <div style={{ marginBottom:32, textAlign:"center" }}>
           <h1 style={{ fontSize:36, fontWeight:800, letterSpacing:"-0.03em", lineHeight:1.1, marginBottom:12, color:"white",}}>
-            Turn chaos into clarity
+            What did<br/><span style={{color:T.accent}}>your brief say?</span>
           </h1>
           <p style={{ color:T.textSoft, fontSize:14, lineHeight:1.7 }}>
-            Paste your brief, upload files, ask questions. We'll extract insights and scope your project.
+            Share your brief. We'll analyze it, extract key insights, and help you scope your project.
           </p>
         </div>
 
 
         {/* Upload Modal */}
         {showUploadModal && (
-          <>
+          <div
+            style={{
+              position:"fixed",
+              top:0,
+              left:0,
+              right:0,
+              bottom:0,
+              zIndex:999,
+            }}
+            onClick={()=>setShowUploadModal(false)}
+          >
             <div
               style={{
                 position:"fixed",
-                top:0,
-                left:0,
-                right:0,
-                bottom:0,
-                background:"rgba(0,0,0,0.4)",
-                zIndex:999,
-              }}
-              onClick={()=>setShowUploadModal(false)}
-            />
-            <div
-              style={{
-                position:"fixed",
-                top:"50%",
-                left:"50%",
-                transform:"translate(-50%, -50%)",
-                background:T.card,
+                bottom: isMobile ? "calc(100% - 120px)" : "auto",
+                top: isMobile ? "auto" : "calc(100% - 140px)",
+                right:"20px",
+                background:T.surface,
                 border:`1px solid ${T.border}`,
-                borderRadius:14,
-                padding:20,
+                borderRadius:10,
+                padding:"10px 0",
                 zIndex:1000,
-                minWidth:260,
-                boxShadow:"0 20px 60px rgba(0,0,0,0.4)",
+                minWidth:200,
+                boxShadow: isMobile
+                  ? "0 -4px 12px rgba(0,0,0,0.1)"
+                  : "0 4px 12px rgba(0,0,0,0.1)",
               }}
               onClick={e=>e.stopPropagation()}
             >
-              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <button
-                  onClick={()=>fileRef.current?.click()}
-                  style={{
-                    display:"flex",
-                    alignItems:"center",
-                    gap:12,
-                    padding:"12px 14px",
-                    background:T.surface,
-                    border:`1px solid ${T.border}`,
-                    borderRadius:8,
-                    color:T.text,
-                    cursor:"pointer",
-                    fontSize:13,
-                    fontWeight:600,
-                    transition:"all .2s",
-                  }}
-                  onMouseEnter={e=>{ e.currentTarget.style.background=T.card; e.currentTarget.style.borderColor=T.accent; }}
-                  onMouseLeave={e=>{ e.currentTarget.style.background=T.surface; e.currentTarget.style.borderColor=T.border; }}
-                >
-                  <span style={{fontSize:18}}>📄</span>
-                  Upload Document
-                </button>
-                <button
-                  onClick={()=>imageRef.current?.click()}
-                  style={{
-                    display:"flex",
-                    alignItems:"center",
-                    gap:12,
-                    padding:"12px 14px",
-                    background:T.surface,
-                    border:`1px solid ${T.border}`,
-                    borderRadius:8,
-                    color:T.text,
-                    cursor:"pointer",
-                    fontSize:13,
-                    fontWeight:600,
-                    transition:"all .2s",
-                  }}
-                  onMouseEnter={e=>{ e.currentTarget.style.background=T.card; e.currentTarget.style.borderColor=T.accent; }}
-                  onMouseLeave={e=>{ e.currentTarget.style.background=T.surface; e.currentTarget.style.borderColor=T.border; }}
-                >
-                  <span style={{fontSize:18}}>🖼</span>
-                  Upload Image
-                </button>
-              </div>
+              <button
+                onClick={()=>{fileRef.current?.click(); setShowUploadModal(false);}}
+                style={{
+                  display:"flex",
+                  alignItems:"center",
+                  gap:10,
+                  padding:"10px 14px",
+                  background:"none",
+                  border:"none",
+                  color:T.text,
+                  cursor:"pointer",
+                  fontSize:12,
+                  fontFamily:"DM Mono",
+                  fontWeight:500,
+                  transition:"all .2s",
+                  width:"100%",
+                  textAlign:"left",
+                }}
+                onMouseEnter={e=>{ e.currentTarget.style.background=T.card; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="none"; }}
+              >
+                <span style={{fontSize:16}}>📄</span>
+                Document
+              </button>
+
+              <div style={{ height:"1px", background:T.border, margin:"6px 0" }} />
+
+              <button
+                onClick={()=>{imageRef.current?.click(); setShowUploadModal(false);}}
+                style={{
+                  display:"flex",
+                  alignItems:"center",
+                  gap:10,
+                  padding:"10px 14px",
+                  background:"none",
+                  border:"none",
+                  color:T.text,
+                  cursor:"pointer",
+                  fontSize:12,
+                  fontFamily:"DM Mono",
+                  fontWeight:500,
+                  transition:"all .2s",
+                  width:"100%",
+                  textAlign:"left",
+                }}
+                onMouseEnter={e=>{ e.currentTarget.style.background=T.card; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="none"; }}
+              >
+                <span style={{fontSize:16}}>🖼</span>
+                Image
+              </button>
             </div>
-          </>
+          </div>
         )}
 
         {/* Chat-like Input Box */}
