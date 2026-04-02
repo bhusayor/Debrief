@@ -1,7 +1,4 @@
 {
   "buildCommand": "cd my-react-app && npm run build",
-  "outputDirectory": "my-react-app/dist",
-  "env": {
-    "VITE_BACKEND_URL": "@vite-backend-url"
-  }
+  "outputDirectory": "my-react-app/dist"
 }
