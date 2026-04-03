@@ -1,7 +1,4 @@
 {
   "buildCommand": "cd my-react-app && npm run build",
-  "outputDirectory": "my-react-app/dist",
-  "env": {
-    "VITE_API_BASE_URL": "@vite_api_base_url"
-  }
+  "outputDirectory": "my-react-app/dist"
 }
