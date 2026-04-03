@@ -1,13 +1,4 @@
 {
   "buildCommand": "npm install",
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "regions": ["iad1"],
-  "functions": {
-    "server.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
+  "devCommand": "npm run dev"
 }
