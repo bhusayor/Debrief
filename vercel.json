@@ -1,4 +1,4 @@
 {
-  "buildCommand": "cd my-react-app && npm install --legacy-peer-deps && npm exec vite build",
+  "buildCommand": "cd my-react-app && npm ci && npx vite build",
   "outputDirectory": "my-react-app/dist"
 }
